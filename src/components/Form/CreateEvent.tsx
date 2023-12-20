@@ -1,5 +1,6 @@
 'use client'
 
+import { createEventAction } from "@/actions/createEventAction"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { UserMinus, UserPlus } from "lucide-react"
 import { useFieldArray, useForm } from "react-hook-form"
@@ -11,7 +12,7 @@ const schema = z.object({
   }))
 })
 
-type FormCreateEventInput = z.infer<typeof schema>
+export type FormCreateEventInput = z.infer<typeof schema>
 
 export const FormCreateEvent = () => {
   const { register, handleSubmit, control } = useForm<FormCreateEventInput>({
@@ -23,8 +24,37 @@ export const FormCreateEvent = () => {
     control
   })
 
-  const handleCreateEvent = (data: FormCreateEventInput) => {
-    console.log(data)
+  const handleCreateEvent = async (data: FormCreateEventInput) => {
+    const { friends } = data
+
+    let friendsRaffled: string[] = []
+    const raffle  = friends.map(friendSelected => {
+      const friendsSecret = friends
+      .filter(friend => friend.name !== friendSelected.name)
+      .filter(friend => !friendsRaffled.includes(friend.name))
+
+      const randomPosition = Math.floor(Math.random() * friendsSecret.length)
+      const friendSecret = friendsSecret[randomPosition]
+      
+      friendsRaffled.push(friendSecret?.name)
+
+      return {
+        page_id: self.crypto.randomUUID(),
+        friend: friendSelected.name,
+        friend_secret: friendSecret?.name
+      }
+    })
+
+    const response = await createEventAction({
+      event_id: self.crypto.randomUUID(),
+      friends: raffle
+    })
+
+    if(response?.error) {
+      console.log({
+        error: response.error
+      })
+    }
   }
 
   const handleAddFriend = () => {
